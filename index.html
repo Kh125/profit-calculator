@@ -27,7 +27,11 @@
     }
     .warning-message {
       background-color: #fffbeb; /* bg-yellow-100 */
-      border: 1px solid #fcd34d; /* border-yellow-400 */
+      border: 1px solid #fcd34d; /* border-y              <div class="text-right">
+                <p class="text-sm text-gray-600">ရောင်းစျေး: ${formatNumber(calc.soldAmount)} MMK</p>
+                <p class="text-sm text-gray-600">ပါဝင်ငွေ: ${formatNumber(calc.totalInvestment)} MMK</p>
+                <p class="text-sm ${profitClass}">${profitText}: ${formatNumber(Math.abs(calc.totalProfit))} MMK</p>
+              </div>-400 */
       color: #b45309; /* text-yellow-700 */
       padding: 0.75rem 1rem;
       border-radius: 0.25rem;
@@ -142,9 +146,9 @@
       }
       .nav-buttons button {
         flex: 1;
-        max-width: 120px;
+        max-width: 100px;
         text-align: center;
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 0.5rem;
         font-size: 0.75rem;
       }
     }
@@ -157,6 +161,7 @@
       <h1 class="text-xl md:text-2xl font-bold">📈 အမြတ်ငွေတွက်ချက်မှု</h1>
       <div class="nav-buttons flex space-x-2">
         <button id="historyBtn" onclick="showHistoryPanel()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">📋 မှတ်တမ်း</button>
+        <button id="summaryBtn" onclick="showSummaryPanel()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded text-sm hidden">📈 အနှစ်ချုပ်</button>
         <button id="newCalcBtn" onclick="showNewCalculation()" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm hidden">➕ တွက်ချက်မှုအသစ်</button>
       </div>
     </div>
@@ -217,12 +222,68 @@
       </div>
     </div>
 
+    <!-- Summary View -->
+    <div id="summaryView" class="hidden space-y-6">
+      <h2 class="text-xl font-semibold">📈 တွက်ချက်မှုများ အနှစ်ချုပ်</h2>
+      
+      <!-- Filter Controls -->
+      <div class="mobile-share-card">
+        <h3 class="mobile-share-name">စစ်ထုတ်ရန်</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">နှစ်အလိုက်</label>
+            <select id="yearFilter" onchange="updateSummary()" class="w-full border border-gray-300 rounded px-3 py-2">
+              <option value="">နှစ်အားလုံး</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">လအလိုက်</label>
+            <select id="monthFilter" onchange="updateSummary()" class="w-full border border-gray-300 rounded px-3 py-2">
+              <option value="">လအားလုံး</option>
+              <option value="0">ဇန်နဝါရီ</option>
+              <option value="1">ဖေဖော်ဝါရီ</option>
+              <option value="2">မတ်</option>
+              <option value="3">ဧပြီ</option>
+              <option value="4">မေ</option>
+              <option value="5">ဇွန်</option>
+              <option value="6">ဇူလိုင်</option>
+              <option value="7">သြဂုတ်</option>
+              <option value="8">စက်တင်ဘာ</option>
+              <option value="9">အောက်တိုဘာ</option>
+              <option value="10">နိုဝင်ဘာ</option>
+              <option value="11">ဒီဇင်ဘာ</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm w-full">
+              🔄 ရှင်းလင်းရန်
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Statistics -->
+      <div id="summaryStats" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Statistics will be populated here -->
+      </div>
+
+      <!-- Filtered Calculations List -->
+      <div id="filteredCalculations" class="space-y-3">
+        <!-- Filtered calculations will be populated here -->
+      </div>
+    </div>
+
   </div>
 
   <script>
     // Global variables for managing state
     let currentView = 'calculator';
     let selectedCalculationId = null;
+
+    // Helper function for consistent number formatting
+    function formatNumber(number) {
+      return Math.round(number).toLocaleString();
+    }
 
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
@@ -240,7 +301,9 @@
       document.getElementById('calculatorView').classList.add('hidden');
       document.getElementById('historyView').classList.remove('hidden');
       document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('summaryView').classList.add('hidden');
       document.getElementById('historyBtn').classList.add('hidden');
+      document.getElementById('summaryBtn').classList.remove('hidden');
       document.getElementById('newCalcBtn').classList.remove('hidden');
       loadHistoryList();
     }
@@ -250,9 +313,23 @@
       document.getElementById('calculatorView').classList.remove('hidden');
       document.getElementById('historyView').classList.add('hidden');
       document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('summaryView').classList.add('hidden');
       document.getElementById('historyBtn').classList.remove('hidden');
+      document.getElementById('summaryBtn').classList.add('hidden');
       document.getElementById('newCalcBtn').classList.add('hidden');
       clearCalculation();
+    }
+
+    function showSummaryPanel() {
+      currentView = 'summary';
+      document.getElementById('calculatorView').classList.add('hidden');
+      document.getElementById('historyView').classList.add('hidden');
+      document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('summaryView').classList.remove('hidden');
+      document.getElementById('historyBtn').classList.remove('hidden');
+      document.getElementById('summaryBtn').classList.add('hidden');
+      document.getElementById('newCalcBtn').classList.remove('hidden');
+      initializeSummaryView();
     }
 
     function showDetail(calculationId) {
@@ -261,6 +338,7 @@
       document.getElementById('calculatorView').classList.add('hidden');
       document.getElementById('historyView').classList.add('hidden');
       document.getElementById('detailView').classList.remove('hidden');
+      document.getElementById('summaryView').classList.add('hidden');
       loadDetailView(calculationId);
     }
 
@@ -345,8 +423,8 @@
                 <p class="text-sm text-gray-500">${timeStr}</p>
               </div>
               <div class="text-right">
-                <p class="text-sm text-gray-600">ရောင်းစျေး: ${calc.soldAmount.toLocaleString()} MMK</p>
-                <p class="text-sm ${profitClass}">စုစုပေါင်း ${profitText}: ${Math.abs(calc.totalProfit).toLocaleString()} MMK</p>
+                <p class="text-sm text-gray-600">ရောင်းစျေး: ${formatNumber(calc.soldAmount)} MMK</p>
+                <p class="text-sm ${profitClass}">စုစုပေါင်း ${profitText}: ${formatNumber(Math.abs(calc.totalProfit))} MMK</p>
               </div>
             </div>
           </div>
@@ -395,10 +473,10 @@
         desktopResultsHTML += `
           <tr>
             <td class="border px-4 py-2">${user.name}</td>
-            <td class="border px-4 py-2">${user.amount.toLocaleString()}</td>
+            <td class="border px-4 py-2">${formatNumber(user.amount)}</td>
             <td class="border px-4 py-2">${percent.toFixed(2)}%</td>
-            <td class="border px-4 py-2">${totalReturn.toFixed(0).toLocaleString()}</td>
-            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()}</td>
+            <td class="border px-4 py-2">${formatNumber(totalReturn)}</td>
+            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${formatNumber(Math.abs(userProfit))}</td>
           </tr>
         `;
       });
@@ -418,7 +496,7 @@
             <h3 class="mobile-share-name">${user.name}</h3>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">ပါဝင်ငွေ:</span>
-              <span class="mobile-share-item-value">${user.amount.toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value">${formatNumber(user.amount)} MMK</span>
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">ပါဝင်ရာခိုင်နှုန်း:</span>
@@ -426,11 +504,11 @@
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">စုစုပေါင်း ပြန်ရငွေ:</span>
-              <span class="mobile-share-item-value">${totalReturn.toFixed(0).toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value">${formatNumber(totalReturn)} MMK</span>
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">အမြတ်ငွေ:</span>
-              <span class="mobile-share-item-value ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value ${profitLossClass}">${profitLossPrefix}${formatNumber(Math.abs(userProfit))} MMK</span>
             </div>
           </div>
         `;
@@ -445,15 +523,15 @@
           <h3 class="mobile-share-name">စာရင်းအနှစ်ချုပ်</h3>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">စုစုပေါင်း ပါဝင်ငွေ:</span>
-            <span class="mobile-share-item-value">${totalInvestment.toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value">${formatNumber(totalInvestment)} MMK</span>
           </div>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">ရောင်းစျေး:</span>
-            <span class="mobile-share-item-value">${calculation.soldAmount.toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value">${formatNumber(calculation.soldAmount)} MMK</span>
           </div>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">စုစုပေါင်း ${overallProfitLossText}:</span>
-            <span class="mobile-share-item-value ${overallProfitLossClass}">${Math.abs(totalProfit).toFixed(0).toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value ${overallProfitLossClass}">${formatNumber(Math.abs(totalProfit))} MMK</span>
           </div>
         </div>
       `;
@@ -624,10 +702,10 @@
         desktopResultsHTML += `
           <tr>
             <td class="border px-4 py-2">${user.name}</td>
-            <td class="border px-4 py-2">${user.amount.toLocaleString()}</td>
+            <td class="border px-4 py-2">${formatNumber(user.amount)}</td>
             <td class="border px-4 py-2">${percent.toFixed(2)}%</td>
-            <td class="border px-4 py-2">${totalReturn.toFixed(0).toLocaleString()}</td>
-            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()}</td>
+            <td class="border px-4 py-2">${formatNumber(totalReturn)}</td>
+            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${formatNumber(Math.abs(userProfit))}</td>
           </tr>
         `;
       });
@@ -650,7 +728,7 @@
             <h3 class="mobile-share-name">${user.name}</h3>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">ပါဝင်ငွေ:</span>
-              <span class="mobile-share-item-value">${user.amount.toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value">${formatNumber(user.amount)} MMK</span>
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">ပါဝင်ရာခိုင်နှုန်း:</span>
@@ -658,11 +736,11 @@
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">စုစုပေါင်း ပြန်ရငွေ:</span>
-              <span class="mobile-share-item-value">${totalReturn.toFixed(0).toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value">${formatNumber(totalReturn)} MMK</span>
             </div>
             <div class="mobile-share-item">
               <span class="mobile-share-item-label">အမြတ်ငွေ:</span>
-              <span class="mobile-share-item-value ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()} MMK</span>
+              <span class="mobile-share-item-value ${profitLossClass}">${profitLossPrefix}${formatNumber(Math.abs(userProfit))} MMK</span>
             </div>
           </div>
         `;
@@ -677,15 +755,15 @@
           <h3 class="mobile-share-name">စာရင်းအနှစ်ချုပ်</h3>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">စုစုပေါင်း ပါဝင်ငွေ:</span>
-            <span class="mobile-share-item-value">${totalInvestment.toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value">${formatNumber(totalInvestment)} MMK</span>
           </div>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">ရောင်းစျေး:</span>
-            <span class="mobile-share-item-value">${soldAmount.toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value">${formatNumber(soldAmount)} MMK</span>
           </div>
           <div class="mobile-share-item">
             <span class="mobile-share-item-label">စုစုပေါင်း ${overallProfitLossText}:</span>
-            <span class="mobile-share-item-value ${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span>
+            <span class="mobile-share-item-value ${overallProfitLossClass}">${formatNumber(Math.abs(profit))} MMK</span>
           </div>
         </div>
       `;
@@ -700,6 +778,134 @@
         totalProfit: profit
       };
       saveCalculation(calculationData);
+    }
+
+    // Summary view functions
+    function initializeSummaryView() {
+      populateYearFilter();
+      updateSummary();
+    }
+
+    function populateYearFilter() {
+      const calculations = getStoredCalculations();
+      const years = [...new Set(calculations.map(calc => new Date(calc.date).getFullYear()))].sort((a, b) => b - a);
+      
+      const yearFilter = document.getElementById('yearFilter');
+      yearFilter.innerHTML = '<option value="">နှစ်အားလုံး</option>';
+      
+      years.forEach(year => {
+        yearFilter.innerHTML += `<option value="${year}">${year}</option>`;
+      });
+    }
+
+    function updateSummary() {
+      const calculations = getStoredCalculations();
+      const yearFilter = document.getElementById('yearFilter').value;
+      const monthFilter = document.getElementById('monthFilter').value;
+      
+      // Filter calculations based on selected filters
+      const filteredCalculations = calculations.filter(calc => {
+        const calcDate = new Date(calc.date);
+        
+        if (yearFilter && calcDate.getFullYear() !== parseInt(yearFilter)) {
+          return false;
+        }
+        
+        if (monthFilter !== '' && calcDate.getMonth() !== parseInt(monthFilter)) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // Calculate summary statistics
+      const totalCalculations = filteredCalculations.length;
+      const totalInvestmentSum = filteredCalculations.reduce((sum, calc) => sum + calc.totalInvestment, 0);
+      const totalSoldAmountSum = filteredCalculations.reduce((sum, calc) => sum + calc.soldAmount, 0);
+      const totalProfitSum = filteredCalculations.reduce((sum, calc) => sum + calc.totalProfit, 0);
+      
+      // Update statistics display
+      const summaryStats = document.getElementById('summaryStats');
+      const profitClass = totalProfitSum >= 0 ? 'text-green-600' : 'text-red-600';
+      const profitText = totalProfitSum >= 0 ? 'အမြတ်' : 'အရှုံး';
+      
+      summaryStats.innerHTML = `
+        <div class="mobile-share-card">
+          <h3 class="mobile-share-name">တွက်ချက်မှုအရေအတွက်</h3>
+          <p class="text-2xl font-bold text-blue-600">${totalCalculations}</p>
+        </div>
+        <div class="mobile-share-card">
+          <h3 class="mobile-share-name">စုစုပေါင်း ပါဝင်ငွေ</h3>
+          <p class="text-lg font-bold text-blue-800">${formatNumber(totalInvestmentSum)} MMK</p>
+        </div>
+        <div class="mobile-share-card">
+          <h3 class="mobile-share-name">စုစုပေါင်း ရောင်းငွေ</h3>
+          <p class="text-lg font-bold text-gray-800">${formatNumber(totalSoldAmountSum)} MMK</p>
+        </div>
+        <div class="mobile-share-card">
+          <h3 class="mobile-share-name">စုစုပေါင်း ${profitText}</h3>
+          <p class="text-lg font-bold ${profitClass}">${formatNumber(Math.abs(totalProfitSum))} MMK</p>
+        </div>
+      `;
+      
+      // Update filtered calculations list
+      displayFilteredCalculations(filteredCalculations);
+    }
+
+    function displayFilteredCalculations(calculations) {
+      const filteredCalculations = document.getElementById('filteredCalculations');
+      
+      if (calculations.length === 0) {
+        filteredCalculations.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            <p>ရွေးချယ်ထားသော စစ်ထုတ်မှုအတွက် တွက်ချက်မှုများမရှိပါ။</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Sort by date (newest first)
+      calculations.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      let html = '<h3 class="text-lg font-semibold mb-3">စစ်ထုတ်ထားသော တွက်ချက်မှုများ</h3>';
+      
+      html += calculations.map(calc => {
+        const date = new Date(calc.date);
+        const timeStr = date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const profitClass = calc.totalProfit >= 0 ? 'text-green-600' : 'text-red-600';
+        const profitText = calc.totalProfit >= 0 ? 'အမြတ်' : 'အရှုံး';
+        
+        return `
+          <div class="mobile-share-card cursor-pointer hover:bg-gray-50" onclick="showDetail('${calc.id}')">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-medium">${calc.name}</h4>
+                <p class="text-sm text-gray-500">${timeStr}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-600">ရောင်းစျေး: ${calc.soldAmount.toLocaleString()} MMK</p>
+                <p class="text-sm text-gray-600">ပါဝင်ငွေ: ${calc.totalInvestment.toLocaleString()} MMK</p>
+                <p class="text-sm ${profitClass}">${profitText}: ${Math.abs(calc.totalProfit).toLocaleString()} MMK</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      filteredCalculations.innerHTML = html;
+    }
+
+    function clearFilters() {
+      document.getElementById('yearFilter').value = '';
+      document.getElementById('monthFilter').value = '';
+      updateSummary();
     }
   </script>
 </body>
