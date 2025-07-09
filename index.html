@@ -213,7 +213,7 @@
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-semibold" id="detailTitle">တွက်ချက်မှု အသေးစိတ်</h2>
         <div class="flex space-x-2">
-          <button onclick="loadCalculation()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">📝 Load</button>
+          <button onclick="editCalculation()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">✏️ Edit</button>
           <button onclick="deleteCalculation()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm">🗑️ Delete</button>
         </div>
       </div>
@@ -279,6 +279,8 @@
     // Global variables for managing state
     let currentView = 'calculator';
     let selectedCalculationId = null;
+    let isSaving = false; // Flag to prevent multiple saves
+    let editSaveCompleted = false; // Flag to track if current edit has been saved
 
     // Helper function for consistent number formatting
     function formatNumber(number) {
@@ -317,7 +319,26 @@
       document.getElementById('historyBtn').classList.remove('hidden');
       document.getElementById('summaryBtn').classList.add('hidden');
       document.getElementById('newCalcBtn').classList.add('hidden');
+      
+      // Update calculate button text based on mode
+      updateCalculateButtonText();
+      
       clearCalculation();
+    }
+
+    function updateCalculateButtonText() {
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      const mainTitle = document.querySelector('.nav-header h1');
+      
+      if (window.editingCalculationId) {
+        calculateBtn.textContent = 'ပြင်ဆင်မှုသိမ်းဆည်းပါ';
+        calculateBtn.className = 'bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded mt-4';
+        mainTitle.innerHTML = '✏️ တွက်ချက်မှု ပြင်ဆင်ခြင်း';
+      } else {
+        calculateBtn.textContent = 'တွက်ချက်ပါ';
+        calculateBtn.className = 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4';
+        mainTitle.innerHTML = '📈 အမြတ်ငွေတွက်ချက်မှု';
+      }
     }
 
     function showSummaryPanel() {
@@ -350,6 +371,26 @@
       const container = document.getElementById('sharesContainer');
       container.innerHTML = '';
       addShareField();
+      
+      // Clear editing mode if active
+      if (window.editingCalculationId) {
+        delete window.editingCalculationId;
+      }
+      
+      // Reset edit save completed flag
+      editSaveCompleted = false;
+      
+      // Show calculate button and remove action buttons
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      calculateBtn.style.display = 'inline-block';
+      
+      const actionButtons = document.getElementById('actionButtons');
+      if (actionButtons) {
+        actionButtons.remove();
+      }
+      
+      // Update button text
+      updateCalculateButtonText();
     }
 
     // Storage functions
@@ -362,6 +403,39 @@
         year: 'numeric' 
       });
       
+      // Check if we're editing an existing calculation
+      if (window.editingCalculationId) {
+        // Find and update the existing calculation
+        const existingIndex = calculations.findIndex(calc => calc.id === window.editingCalculationId);
+        if (existingIndex !== -1) {
+          // Update the existing calculation while preserving the original date and name
+          calculations[existingIndex] = {
+            ...calculations[existingIndex],
+            ...calculationData,
+            // Keep original creation date but update modified date
+            lastModified: now.toISOString()
+          };
+          localStorage.setItem('profitCalculations', JSON.stringify(calculations));
+          
+          // Don't clear the editing flag here - let the UI handle it
+          // delete window.editingCalculationId;
+          
+          // Only show alert if not already showing (prevent multiple alerts)
+          if (!window.saveAlertShown && window.editingCalculationId) {
+            window.saveAlertShown = true;
+            alert('တွက်ချက်မှုကို အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ။');
+            setTimeout(() => {
+              delete window.saveAlertShown;
+            }, 1000);
+          }
+          return calculations[existingIndex].id;
+        } else {
+          // If original calculation not found, treat as new calculation
+          // Don't delete editingCalculationId here - let the UI handle it
+        }
+      }
+      
+      // Create new calculation
       const calculation = {
         id: Date.now().toString(),
         name: `Calculation - ${dateStr}`,
@@ -539,7 +613,7 @@
       document.getElementById('detailContent').innerHTML = desktopResultsHTML + mobileResultsHTML + summaryHTML;
     }
 
-    function loadCalculation() {
+    function editCalculation() {
       const calculations = getStoredCalculations();
       const calculation = calculations.find(calc => calc.id === selectedCalculationId);
       
@@ -564,9 +638,35 @@
         lastEntry.querySelector('.share-amount').value = user.amount;
       });
       
+      // Store the original calculation ID for updating
+      window.editingCalculationId = selectedCalculationId;
+      
+      // Reset the edit save completed flag for new edit session
+      editSaveCompleted = false;
+      
+      // Show calculate button and remove action buttons for editing
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      calculateBtn.style.display = 'inline-block';
+      
+      const actionButtons = document.getElementById('actionButtons');
+      if (actionButtons) {
+        actionButtons.remove();
+      }
+      
       // Switch to calculator view
-      showNewCalculation();
-      alert('တွက်ချက်မှုကို ရယူပြီးပါပြီ။');
+      currentView = 'calculator';
+      document.getElementById('calculatorView').classList.remove('hidden');
+      document.getElementById('historyView').classList.add('hidden');
+      document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('summaryView').classList.add('hidden');
+      document.getElementById('historyBtn').classList.remove('hidden');
+      document.getElementById('summaryBtn').classList.add('hidden');
+      document.getElementById('newCalcBtn').classList.add('hidden');
+      
+      // Update button text for editing mode
+      updateCalculateButtonText();
+      
+      alert('တွက်ချက်မှုကို ပြင်ဆင်နိုင်ပါပြီ။ ပြင်ဆင်မှုသိမ်းဆည်းပါ ခလုတ်ကို နှိပ်ပြီး အပြောင်းအလဲများကို သိမ်းဆည်းပါ။');
     }
 
     function deleteCalculation() {
@@ -611,6 +711,11 @@
 
     // Function to calculate profit and display results
     function calculateProfit() {
+      // Prevent multiple simultaneous calculations
+      if (isSaving) {
+        return;
+      }
+
       const soldAmountInput = document.getElementById('soldAmount');
       const soldAmount = parseFloat(soldAmountInput.value);
       const entries = document.querySelectorAll('.share-entry-container');
@@ -770,6 +875,13 @@
 
       resultsDiv.innerHTML = desktopResultsHTML + mobileResultsHTML + summaryHTML;
 
+      // Hide the calculate button and show action buttons after calculation
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      calculateBtn.style.display = 'none';
+      
+      // Create and show action buttons
+      showActionButtons(window.editingCalculationId ? 'edit' : 'new');
+
       // Save the calculation to history (auto-save)
       const calculationData = {
         soldAmount,
@@ -777,7 +889,97 @@
         totalInvestment,
         totalProfit: profit
       };
-      saveCalculation(calculationData);
+      
+      if (window.editingCalculationId) {
+        // For edit mode, save and clear editing state
+        saveCalculation(calculationData);
+        delete window.editingCalculationId;
+        
+        // Update title back to normal
+        const mainTitle = document.querySelector('.nav-header h1');
+        mainTitle.innerHTML = '📈 အမြတ်ငွေတွက်ချက်မှု';
+      } else {
+        // For new calculation, just save
+        saveCalculation(calculationData);
+      }
+    }
+
+    // Function to show action buttons after calculation
+    function showActionButtons(mode) {
+      const calculateBtnContainer = document.querySelector('.text-center');
+      
+      // Remove existing action buttons if any
+      const existingActions = document.getElementById('actionButtons');
+      if (existingActions) {
+        existingActions.remove();
+      }
+      
+      // Create action buttons container
+      const actionDiv = document.createElement('div');
+      actionDiv.id = 'actionButtons';
+      actionDiv.className = 'text-center space-y-2 sm:space-y-0 sm:space-x-3 mt-4 flex flex-col sm:flex-row justify-center';
+      
+      if (mode === 'edit') {
+        actionDiv.innerHTML = `
+          <button onclick="startNewCalculation()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto">
+            ➕ တွက်ချက်မှုအသစ်
+          </button>
+          <button onclick="goToHistory()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto">
+            📋 မှတ်တမ်းကြည့်ရန်
+          </button>
+        `;
+      } else {
+        actionDiv.innerHTML = `
+          <button onclick="recalculate()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto">
+            🔄 ပြန်တွက်ချက်ရန်
+          </button>
+          <button onclick="startNewCalculation()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto">
+            ➕ တွက်ချက်မှုအသစ်
+          </button>
+          <button onclick="goToHistory()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto">
+            📋 မှတ်တမ်းကြည့်ရန်
+          </button>
+        `;
+      }
+      
+      calculateBtnContainer.appendChild(actionDiv);
+    }
+
+    // Function to recalculate (show calculate button again)
+    function recalculate() {
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      calculateBtn.style.display = 'inline-block';
+      calculateBtn.textContent = 'တွက်ချက်ပါ';
+      calculateBtn.className = 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4';
+      
+      // Remove action buttons
+      const actionButtons = document.getElementById('actionButtons');
+      if (actionButtons) {
+        actionButtons.remove();
+      }
+      
+      // Clear results
+      document.getElementById('results').innerHTML = '';
+    }
+
+    // Function to start a new calculation
+    function startNewCalculation() {
+      clearCalculation();
+      
+      // Show calculate button
+      const calculateBtn = document.querySelector('button[onclick="calculateProfit()"]');
+      calculateBtn.style.display = 'inline-block';
+      
+      // Remove action buttons
+      const actionButtons = document.getElementById('actionButtons');
+      if (actionButtons) {
+        actionButtons.remove();
+      }
+    }
+
+    // Function to go to history
+    function goToHistory() {
+      showHistoryPanel();
     }
 
     // Summary view functions
