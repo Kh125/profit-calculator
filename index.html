@@ -251,10 +251,10 @@
       const overallProfitLossClass = profit >= 0 ? 'profit-text' : 'loss-text';
 
       const summaryHTML = `
-        <div class="mt-4 p-4 border-t border-gray-300">
-          <p class="font-semibold text-gray-700">စုစုပေါင်း ပါဝင်ငွေ: ${totalInvestment.toLocaleString()} MMK</p>
-          <p class="font-semibold text-gray-700">ရောင်းစျေး: ${soldAmount.toLocaleString()} MMK</p>
-          <p class="font-semibold text-gray-700">စုစုပေါင်း ${overallProfitLossText}: <span class="${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span></p>
+        <div class="mt-3 p-3 border-t border-gray-300 bg-gray-50 rounded-lg">
+          <p class="text-sm sm:text-base font-semibold text-gray-700 mb-1">စုစုပေါင်း ပါဝင်ငွေ: ${totalInvestment.toLocaleString()} MMK</p>
+          <p class="text-sm sm:text-base font-semibold text-gray-700 mb-1">ရောင်းစျေး: ${soldAmount.toLocaleString()} MMK</p>
+          <p class="text-sm sm:text-base font-semibold text-gray-700">စုစုပေါင်း ${overallProfitLossText}: <span class="${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span></p>
         </div>
       `;
 
