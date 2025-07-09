@@ -4,64 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Business Profit Calculator</title>
-  <script defer src="app.js"></script>
-  <script>
-    function addShareField() {
-      const container = document.getElementById('sharesContainer');
-      const div = document.createElement('div');
-      div.className = 'share-entry flex space-x-2';
-      div.innerHTML = `
-        <input type="text" class="share-name w-1/3 border border-gray-300 rounded px-2 py-1" placeholder="ရှယ်ယာရှင်အမည်" />
-        <input type="number" class="share-amount w-2/3 border border-gray-300 rounded px-2 py-1" placeholder="ပါဝင်ငွေ(မြန်မာကျပ်)" />
-      `;
-      container.appendChild(div);
-    }
-
-    function calculateProfit() {
-      const soldAmount = parseFloat(document.getElementById('soldAmount').value);
-      const entries = document.querySelectorAll('.share-entry');
-
-      let totalInvestment = 0;
-      const users = [];
-
-      entries.forEach(entry => {
-        const name = entry.querySelector('.share-name').value.trim() || 'အမည်မသိ';
-        const amount = parseFloat(entry.querySelector('.share-amount').value);
-        if (!isNaN(amount)) {
-          users.push({ name, amount });
-          totalInvestment += amount;
-        }
-      });
-
-      const profit = soldAmount - totalInvestment;
-
-      let resultsHTML = `<div class="text-xl font-semibold text-gray-700">အမြတ် - Total Profit: ${profit.toLocaleString()} MMK</div>`;
-      resultsHTML += '<div class="divide-y">';
-
-      users.forEach(user => {
-        const percent = (user.amount / totalInvestment) * 100;
-        const userProfit = (profit * percent) / 100;
-        resultsHTML += `
-          <div class="pt-2">
-            <strong>${user.name}</strong> - ပါဝင်ငွေ: ${user.amount.toLocaleString()} MMK
-            (<span class="text-blue-600">${percent.toFixed(2)}%</span>)
-            → အမြတ်: <span class="text-green-600">${userProfit.toFixed(0).toLocaleString()} MMK</span>
-          </div>
-        `;
-      });
-
-      resultsHTML += '</div>';
-      document.getElementById('results').innerHTML = resultsHTML;
-    }
-  </script>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom styles for profit/loss display and error messages */
+    .profit-text {
+      color: green; /* Original green for profit */
+      font-weight: bold;
+    }
+    .loss-text {
+      color: red; /* Original red for loss */
+      font-weight: bold;
+    }
+    .error-message {
+      background-color: #fee2e2; /* bg-red-100 */
+      border: 1px solid #fca5a5; /* border-red-400 */
+      color: #b91c1c; /* text-red-700 */
+      padding: 0.75rem 1rem; /* px-4 py-3 */
+      border-radius: 0.25rem; /* rounded */
+      position: relative;
+    }
+    .warning-message {
+      background-color: #fffbeb; /* bg-yellow-100 */
+      border: 1px solid #fcd34d; /* border-yellow-400 */
+      color: #b45309; /* text-yellow-700 */
+      padding: 0.75rem 1rem; /* px-4 py-3 */
+      border-radius: 0.25rem; /* rounded */
+      position: relative;
+    }
+    /* New styles for enhanced summary display */
+    .summary-card {
+      background-color: #f9fafb; /* Light gray background */
+      border: 1px solid #e5e7eb; /* Light border */
+      border-radius: 0.5rem; /* Rounded corners */
+      padding: 1.5rem; /* More padding */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow */
+    }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem; /* Spacing between items */
+      font-size: 1.125rem; /* Larger font size */
+    }
+    .summary-item:last-child {
+      margin-bottom: 0; /* No margin for the last item */
+    }
+    .summary-label {
+      font-weight: 500; /* Medium font weight */
+      color: #374151; /* Darker gray text */
+    }
+    .summary-value {
+      font-weight: 700; /* Bold font weight for values */
+      color: #1f2937; /* Even darker gray for values */
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-4xl bg-white shadow-lg rounded-xl p-6 space-y-6">
     <h1 class="text-2xl font-bold text-center">📈 Business Profit Calculator</h1>
 
     <div>
-      <label class="block text-sm font-medium">ရောင်းစျေး - Sold Amount (MMK)</label>
+      <label for="soldAmount" class="block text-sm font-medium">ရောင်းစျေး (မြန်မာကျပ်)</label>
       <input id="soldAmount" type="number" class="mt-1 w-full border border-gray-300 rounded px-4 py-2" placeholder="ဥပမာ - 87700000" />
     </div>
 
@@ -80,5 +83,145 @@
 
     <div id="results" class="space-y-2"></div>
   </div>
+
+  <script>
+    // Function to add a new share input field
+    function addShareField() {
+      const container = document.getElementById('sharesContainer');
+      const div = document.createElement('div');
+      div.className = 'share-entry flex space-x-2'; // Original classes
+      div.innerHTML = `
+        <input type="text" class="share-name w-1/3 border border-gray-300 rounded px-2 py-1" placeholder="ရှယ်ယာရှင်အမည်" />
+        <input type="number" class="share-amount w-2/3 border border-gray-300 rounded px-2 py-1" placeholder="ပါဝင်ငွေ(မြန်မာကျပ်)" />
+      `;
+      container.appendChild(div);
+    }
+
+    // Function to calculate profit and display results
+    function calculateProfit() {
+      const soldAmountInput = document.getElementById('soldAmount');
+      const soldAmount = parseFloat(soldAmountInput.value);
+      const entries = document.querySelectorAll('.share-entry');
+      const resultsDiv = document.getElementById('results');
+
+      // --- Input Validation for Sold Amount ---
+      if (isNaN(soldAmount) || soldAmount <= 0) {
+        resultsDiv.innerHTML = `
+          <div class="error-message" role="alert">
+            <strong class="font-bold">မှားယွင်းမှု!</strong>
+            <span class="block sm:inline"> ကျေးဇူးပြု၍ မှန်ကန်သော ရောင်းစျေးကို ထည့်သွင်းပါ။</span>
+          </div>
+        `;
+        soldAmountInput.classList.add('border-red-500'); // Highlight error
+        return; // Stop execution if validation fails
+      } else {
+        soldAmountInput.classList.remove('border-red-500'); // Remove highlight if valid
+      }
+
+      let totalInvestment = 0;
+      const users = [];
+      let hasInvalidShareInput = false;
+
+      entries.forEach(entry => {
+        const nameInput = entry.querySelector('.share-name');
+        const amountInput = entry.querySelector('.share-amount');
+
+        const name = nameInput.value.trim() || 'အမည်မသိ';
+        const amount = parseFloat(amountInput.value);
+
+        if (isNaN(amount) || amount <= 0) {
+          amountInput.classList.add('border-red-500'); // Highlight error
+          hasInvalidShareInput = true;
+        } else {
+          amountInput.classList.remove('border-red-500'); // Remove highlight if valid
+          users.push({ name, amount });
+          totalInvestment += amount;
+        }
+      });
+
+      // --- Input Validation for Share Amounts ---
+      if (hasInvalidShareInput) {
+        resultsDiv.innerHTML = `
+          <div class="error-message" role="alert">
+            <strong class="font-bold">မှားယွင်းမှု!</strong>
+            <span class="block sm:inline"> ကျေးဇူးပြု၍ ရှယ်ယာရှင်များ၏ ပါဝင်ငွေကို မှန်ကန်စွာ ထည့်သွင်းပါ။</span>
+          </div>
+        `;
+        return;
+      }
+
+      // --- Edge Case: Zero Total Investment ---
+      if (totalInvestment === 0) {
+        resultsDiv.innerHTML = `
+          <div class="warning-message" role="alert">
+            <strong class="font-bold">သတိပြုရန်!</strong>
+            <span class="block sm:inline"> ကျေးဇူးပြု၍ ပါဝင်ငွေများကို ထည့်သွင်းပါ။</span>
+          </div>
+        `;
+        return;
+      }
+
+      const profit = soldAmount - totalInvestment;
+
+      let resultsHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full table-auto border border-gray-300">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border px-4 py-2">ရှယ်ယာရှင်အမည်</th>
+                <th class="border px-4 py-2">ပါဝင်ငွေ</th>
+                <th class="border px-4 py-2">ပါဝင်ရာခိုင်နှုန်း</th>
+                <th class="border px-4 py-2">စုစုပေါင်း ပြန်ရငွေ</th>
+                <th class="border px-4 py-2">အမြတ်ငွေ</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      users.forEach(user => {
+        const percent = (user.amount / totalInvestment) * 100; // Calculate percentage
+        const userProfit = profit * (percent / 100); // Use percentage for calculation
+        const totalReturn = user.amount + userProfit;
+
+        const profitLossClass = userProfit >= 0 ? 'profit-text' : 'loss-text';
+        const profitLossPrefix = userProfit >= 0 ? '' : '-'; // Add minus sign for losses
+
+        resultsHTML += `
+          <tr>
+            <td class="border px-4 py-2">${user.name}</td>
+            <td class="border px-4 py-2">${user.amount.toLocaleString()}</td>
+            <td class="border px-4 py-2">${percent.toFixed(2)}%</td>
+            <td class="border px-4 py-2">${totalReturn.toFixed(0).toLocaleString()}</td>
+            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()}</td>
+          </tr>
+        `;
+      });
+
+      resultsHTML += '</tbody></table></div>'; // Corrected: removed redundant closing tags
+
+      // Determine profit/loss text and class for summary
+      const overallProfitLossText = profit >= 0 ? 'အမြတ်' : 'အရှုံး';
+      const overallProfitLossClass = profit >= 0 ? 'profit-text' : 'loss-text';
+
+      const summaryHTML = `
+        <div class="mt-6 summary-card">
+          <div class="summary-item">
+            <span class="summary-label">စုစုပေါင်း ပါဝင်ငွေ:</span>
+            <span class="summary-value">${totalInvestment.toLocaleString()} MMK</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">ရောင်းစျေး:</span>
+            <span class="summary-value">${soldAmount.toLocaleString()} MMK</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">စုစုပေါင်း ${overallProfitLossText}:</span>
+            <span class="summary-value ${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span>
+          </div>
+        </div>
+      `;
+
+      resultsDiv.innerHTML = resultsHTML + summaryHTML;
+    }
+  </script>
 </body>
 </html>
