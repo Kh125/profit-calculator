@@ -124,19 +124,51 @@
       .main-container {
         padding: 1rem !important;
       }
+      
+      /* Mobile navigation adjustments */
+      .nav-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      .nav-header h1 {
+        font-size: 1.125rem; /* text-lg */
+        text-align: center;
+        width: 100%;
+      }
+      .nav-buttons {
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      .nav-buttons button {
+        flex: 1;
+        max-width: 120px;
+        text-align: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+      }
     }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-4xl bg-white shadow-lg rounded-xl p-6 space-y-6 main-container">
-    <h1 class="text-2xl font-bold text-center">📈 အမြတ်ငွေတွက်ချက်မှု</h1>
-
-    <div>
-      <label for="soldAmount" class="block text-sm font-medium">ရောင်းစျေး (မြန်မာကျပ်)</label>
-      <input id="soldAmount" type="number" class="mt-1 w-full border border-gray-300 rounded px-4 py-2" placeholder="ဥပမာ - 87700000" />
+    <!-- Main Title and Navigation Header -->
+    <div class="nav-header flex justify-between items-center border-b border-gray-200 pb-4">
+      <h1 class="text-xl md:text-2xl font-bold">📈 အမြတ်ငွေတွက်ချက်မှု</h1>
+      <div class="nav-buttons flex space-x-2">
+        <button id="historyBtn" onclick="showHistoryPanel()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">📋 မှတ်တမ်း</button>
+        <button id="newCalcBtn" onclick="showNewCalculation()" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-sm hidden">➕ တွက်ချက်မှုအသစ်</button>
+      </div>
     </div>
 
-    <div id="sharesContainer" class="space-y-4">
+    <!-- Main Calculator View -->
+    <div id="calculatorView">
+      <div>
+        <label for="soldAmount" class="block text-sm font-medium">ရောင်းစျေး (မြန်မာကျပ်)</label>
+        <input id="soldAmount" type="number" class="mt-1 w-full border border-gray-300 rounded px-4 py-2" placeholder="ဥပမာ - 87700000" />
+      </div>
+
+      <div id="sharesContainer" class="space-y-4 mt-6">
       <div class="share-entry-container">
         <div class="share-entry flex space-x-2">
           <input type="text" class="share-name flex-1 border border-gray-300 rounded px-2 py-1" placeholder="ရှယ်ယာရှင်အမည်" />
@@ -157,9 +189,318 @@
     </div>
 
     <div id="results" class="space-y-2"></div>
+    </div>
+
+    <!-- History Panel View -->
+    <div id="historyView" class="hidden space-y-6">
+      <h2 class="text-xl font-semibold">📋 တွက်ချက်မှုမှတ်တမ်းများ</h2>
+      <div id="historyList" class="space-y-3">
+        <!-- History entries will be populated here -->
+      </div>
+      <div id="emptyHistory" class="text-center text-gray-500 py-8 hidden">
+        <p>မှတ်တမ်းများမရှိသေးပါ။</p>
+        <p class="text-sm">တွက်ချက်မှုများလုပ်ပြီးနောက် ၎င်းတို့ကို ဤနေရာတွင် မြင်တွေ့နိုင်မည်။</p>
+      </div>
+    </div>
+
+    <!-- Detail View -->
+    <div id="detailView" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold" id="detailTitle">တွက်ချက်မှု အသေးစိတ်</h2>
+        <div class="flex space-x-2">
+          <button onclick="loadCalculation()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">📝 Load</button>
+          <button onclick="deleteCalculation()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm">🗑️ Delete</button>
+        </div>
+      </div>
+      <div id="detailContent" class="space-y-4">
+        <!-- Detail content will be populated here -->
+      </div>
+    </div>
+
   </div>
 
   <script>
+    // Global variables for managing state
+    let currentView = 'calculator';
+    let selectedCalculationId = null;
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if there are already share fields, if not add one
+      const container = document.getElementById('sharesContainer');
+      if (container.children.length === 0) {
+        addShareField();
+      }
+      loadHistoryList();
+    });
+
+    // View management functions
+    function showHistoryPanel() {
+      currentView = 'history';
+      document.getElementById('calculatorView').classList.add('hidden');
+      document.getElementById('historyView').classList.remove('hidden');
+      document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('historyBtn').classList.add('hidden');
+      document.getElementById('newCalcBtn').classList.remove('hidden');
+      loadHistoryList();
+    }
+
+    function showNewCalculation() {
+      currentView = 'calculator';
+      document.getElementById('calculatorView').classList.remove('hidden');
+      document.getElementById('historyView').classList.add('hidden');
+      document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('historyBtn').classList.remove('hidden');
+      document.getElementById('newCalcBtn').classList.add('hidden');
+      clearCalculation();
+    }
+
+    function showDetail(calculationId) {
+      currentView = 'detail';
+      selectedCalculationId = calculationId;
+      document.getElementById('calculatorView').classList.add('hidden');
+      document.getElementById('historyView').classList.add('hidden');
+      document.getElementById('detailView').classList.remove('hidden');
+      loadDetailView(calculationId);
+    }
+
+    function clearCalculation() {
+      document.getElementById('soldAmount').value = '';
+      document.getElementById('results').innerHTML = '';
+      
+      // Clear all share fields and add one empty field
+      const container = document.getElementById('sharesContainer');
+      container.innerHTML = '';
+      addShareField();
+    }
+
+    // Storage functions
+    function saveCalculation(calculationData) {
+      const calculations = getStoredCalculations();
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      const calculation = {
+        id: Date.now().toString(),
+        name: `Calculation - ${dateStr}`,
+        date: now.toISOString(),
+        ...calculationData
+      };
+      
+      calculations.push(calculation);
+      localStorage.setItem('profitCalculations', JSON.stringify(calculations));
+      return calculation.id;
+    }
+
+    function getStoredCalculations() {
+      const stored = localStorage.getItem('profitCalculations');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function deleteCalculationFromStorage(calculationId) {
+      const calculations = getStoredCalculations();
+      const filtered = calculations.filter(calc => calc.id !== calculationId);
+      localStorage.setItem('profitCalculations', JSON.stringify(filtered));
+    }
+
+    // History panel functions
+    function loadHistoryList() {
+      const calculations = getStoredCalculations();
+      const historyList = document.getElementById('historyList');
+      const emptyHistory = document.getElementById('emptyHistory');
+      
+      if (calculations.length === 0) {
+        historyList.innerHTML = '';
+        emptyHistory.classList.remove('hidden');
+        return;
+      }
+      
+      emptyHistory.classList.add('hidden');
+      
+      // Sort by date (newest first)
+      calculations.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      historyList.innerHTML = calculations.map(calc => {
+        const date = new Date(calc.date);
+        const timeStr = date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const profitClass = calc.totalProfit >= 0 ? 'text-green-600' : 'text-red-600';
+        const profitText = calc.totalProfit >= 0 ? 'အမြတ်' : 'အရှုံး';
+        
+        return `
+          <div class="mobile-share-card cursor-pointer hover:bg-gray-50" onclick="showDetail('${calc.id}')">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-medium">${calc.name}</h3>
+                <p class="text-sm text-gray-500">${timeStr}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-600">ရောင်းစျေး: ${calc.soldAmount.toLocaleString()} MMK</p>
+                <p class="text-sm ${profitClass}">စုစုပေါင်း ${profitText}: ${Math.abs(calc.totalProfit).toLocaleString()} MMK</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Detail view functions
+    function loadDetailView(calculationId) {
+      const calculations = getStoredCalculations();
+      const calculation = calculations.find(calc => calc.id === calculationId);
+      
+      if (!calculation) {
+        document.getElementById('detailContent').innerHTML = '<p class="text-red-500">တွက်ချက်မှုကို ရှာမတွေ့ပါ။</p>';
+        return;
+      }
+      
+      document.getElementById('detailTitle').textContent = calculation.name;
+      
+      // Generate the same results HTML as the calculator
+      const { users, totalInvestment, totalProfit } = calculation;
+      
+      // Desktop table
+      let desktopResultsHTML = `
+        <div class="overflow-x-auto hidden sm:block">
+          <table class="min-w-full table-auto border border-gray-300">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border px-4 py-2">ရှယ်ယာရှင်အမည်</th>
+                <th class="border px-4 py-2">ပါဝင်ငွေ</th>
+                <th class="border px-4 py-2">ပါဝင်ရာခိုင်နှုန်း</th>
+                <th class="border px-4 py-2">စုစုပေါင်း ပြန်ရငွေ</th>
+                <th class="border px-4 py-2">အမြတ်ငွေ</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      users.forEach(user => {
+        const percent = (user.amount / totalInvestment) * 100;
+        const userProfit = totalProfit * (percent / 100);
+        const totalReturn = user.amount + userProfit;
+        const profitLossClass = userProfit >= 0 ? 'profit-text' : 'loss-text';
+        const profitLossPrefix = userProfit >= 0 ? '' : '-';
+
+        desktopResultsHTML += `
+          <tr>
+            <td class="border px-4 py-2">${user.name}</td>
+            <td class="border px-4 py-2">${user.amount.toLocaleString()}</td>
+            <td class="border px-4 py-2">${percent.toFixed(2)}%</td>
+            <td class="border px-4 py-2">${totalReturn.toFixed(0).toLocaleString()}</td>
+            <td class="border px-4 py-2 ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()}</td>
+          </tr>
+        `;
+      });
+      desktopResultsHTML += '</tbody></table></div>';
+
+      // Mobile list
+      let mobileResultsHTML = `<div class="sm:hidden space-y-3">`;
+      users.forEach(user => {
+        const percent = (user.amount / totalInvestment) * 100;
+        const userProfit = totalProfit * (percent / 100);
+        const totalReturn = user.amount + userProfit;
+        const profitLossClass = userProfit >= 0 ? 'profit-text' : 'loss-text';
+        const profitLossPrefix = userProfit >= 0 ? '' : '-';
+
+        mobileResultsHTML += `
+          <div class="mobile-share-card">
+            <h3 class="mobile-share-name">${user.name}</h3>
+            <div class="mobile-share-item">
+              <span class="mobile-share-item-label">ပါဝင်ငွေ:</span>
+              <span class="mobile-share-item-value">${user.amount.toLocaleString()} MMK</span>
+            </div>
+            <div class="mobile-share-item">
+              <span class="mobile-share-item-label">ပါဝင်ရာခိုင်နှုန်း:</span>
+              <span class="mobile-share-item-value">${percent.toFixed(2)}%</span>
+            </div>
+            <div class="mobile-share-item">
+              <span class="mobile-share-item-label">စုစုပေါင်း ပြန်ရငွေ:</span>
+              <span class="mobile-share-item-value">${totalReturn.toFixed(0).toLocaleString()} MMK</span>
+            </div>
+            <div class="mobile-share-item">
+              <span class="mobile-share-item-label">အမြတ်ငွေ:</span>
+              <span class="mobile-share-item-value ${profitLossClass}">${profitLossPrefix}${Math.abs(userProfit).toFixed(0).toLocaleString()} MMK</span>
+            </div>
+          </div>
+        `;
+      });
+      mobileResultsHTML += '</div>';
+
+      const overallProfitLossText = totalProfit >= 0 ? 'အမြတ်' : 'အရှုံး';
+      const overallProfitLossClass = totalProfit >= 0 ? 'profit-text' : 'loss-text';
+
+      const summaryHTML = `
+        <div class="mt-3 mobile-share-card">
+          <h3 class="mobile-share-name">စာရင်းအနှစ်ချုပ်</h3>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">စုစုပေါင်း ပါဝင်ငွေ:</span>
+            <span class="mobile-share-item-value">${totalInvestment.toLocaleString()} MMK</span>
+          </div>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">ရောင်းစျေး:</span>
+            <span class="mobile-share-item-value">${calculation.soldAmount.toLocaleString()} MMK</span>
+          </div>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">စုစုပေါင်း ${overallProfitLossText}:</span>
+            <span class="mobile-share-item-value ${overallProfitLossClass}">${Math.abs(totalProfit).toFixed(0).toLocaleString()} MMK</span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailContent').innerHTML = desktopResultsHTML + mobileResultsHTML + summaryHTML;
+    }
+
+    function loadCalculation() {
+      const calculations = getStoredCalculations();
+      const calculation = calculations.find(calc => calc.id === selectedCalculationId);
+      
+      if (!calculation) {
+        alert('တွက်ချက်မှုကို ရှာမတွေ့ပါ။');
+        return;
+      }
+      
+      // Load the calculation data into the form
+      document.getElementById('soldAmount').value = calculation.soldAmount;
+      
+      // Clear existing share fields
+      const container = document.getElementById('sharesContainer');
+      container.innerHTML = '';
+      
+      // Add share fields for each user
+      calculation.users.forEach(user => {
+        addShareField();
+        const entries = container.querySelectorAll('.share-entry-container');
+        const lastEntry = entries[entries.length - 1];
+        lastEntry.querySelector('.share-name').value = user.name;
+        lastEntry.querySelector('.share-amount').value = user.amount;
+      });
+      
+      // Switch to calculator view
+      showNewCalculation();
+      alert('တွက်ချက်မှုကို ရယူပြီးပါပြီ။');
+    }
+
+    function deleteCalculation() {
+      if (!selectedCalculationId) return;
+      
+      if (confirm('ဤတွက်ချက်မှုကို ဖျက်လိုသည်မှာ သေချာပါသလား?')) {
+        deleteCalculationFromStorage(selectedCalculationId);
+        showHistoryPanel(); // Go back to history view
+        alert('တွက်ချက်မှုကို ဖျက်ပြီးပါပြီ။');
+      }
+    }
+
     // Function to add a new share input field
     function addShareField() {
       const container = document.getElementById('sharesContainer');
@@ -350,6 +691,15 @@
       `;
 
       resultsDiv.innerHTML = desktopResultsHTML + mobileResultsHTML + summaryHTML;
+
+      // Save the calculation to history (auto-save)
+      const calculationData = {
+        soldAmount,
+        users,
+        totalInvestment,
+        totalProfit: profit
+      };
+      saveCalculation(calculationData);
     }
   </script>
 </body>
