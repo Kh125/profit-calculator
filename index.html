@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business Profit Calculator</title>
+  <script defer src="app.js"></script>
+  <script>
+    function addShareField() {
+      const container = document.getElementById('sharesContainer');
+      const div = document.createElement('div');
+      div.className = 'share-entry flex space-x-2';
+      div.innerHTML = `
+        <input type="text" class="share-name w-1/3 border border-gray-300 rounded px-2 py-1" placeholder="ရှယ်ယာရှင်အမည်" />
+        <input type="number" class="share-amount w-2/3 border border-gray-300 rounded px-2 py-1" placeholder="ပါဝင်ငွေ(မြန်မာကျပ်)" />
+      `;
+      container.appendChild(div);
+    }
+
+    function calculateProfit() {
+      const soldAmount = parseFloat(document.getElementById('soldAmount').value);
+      const entries = document.querySelectorAll('.share-entry');
+
+      let totalInvestment = 0;
+      const users = [];
+
+      entries.forEach(entry => {
+        const name = entry.querySelector('.share-name').value.trim() || 'အမည်မသိ';
+        const amount = parseFloat(entry.querySelector('.share-amount').value);
+        if (!isNaN(amount)) {
+          users.push({ name, amount });
+          totalInvestment += amount;
+        }
+      });
+
+      const profit = soldAmount - totalInvestment;
+
+      let resultsHTML = `<div class="text-xl font-semibold text-gray-700">အမြတ် - Total Profit: ${profit.toLocaleString()} MMK</div>`;
+      resultsHTML += '<div class="divide-y">';
+
+      users.forEach(user => {
+        const percent = (user.amount / totalInvestment) * 100;
+        const userProfit = (profit * percent) / 100;
+        resultsHTML += `
+          <div class="pt-2">
+            <strong>${user.name}</strong> - ပါဝင်ငွေ: ${user.amount.toLocaleString()} MMK
+            (<span class="text-blue-600">${percent.toFixed(2)}%</span>)
+            → အမြတ်: <span class="text-green-600">${userProfit.toFixed(0).toLocaleString()} MMK</span>
+          </div>
+        `;
+      });
+
+      resultsHTML += '</div>';
+      document.getElementById('results').innerHTML = resultsHTML;
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-4xl bg-white shadow-lg rounded-xl p-6 space-y-6">
+    <h1 class="text-2xl font-bold text-center">📈 Business Profit Calculator</h1>
+
+    <div>
+      <label class="block text-sm font-medium">ရောင်းစျေး - Sold Amount (MMK)</label>
+      <input id="soldAmount" type="number" class="mt-1 w-full border border-gray-300 rounded px-4 py-2" placeholder="ဥပမာ - 87700000" />
+    </div>
+
+    <div id="sharesContainer" class="space-y-4">
+      <div class="share-entry flex space-x-2">
+        <input type="text" class="share-name w-1/3 border border-gray-300 rounded px-2 py-1" placeholder="ရှယ်ယာရှင်အမည်" />
+        <input type="number" class="share-amount w-2/3 border border-gray-300 rounded px-2 py-1" placeholder="ပါဝင်ငွေ(မြန်မာကျပ်)" />
+      </div>
+    </div>
+
+    <button onclick="addShareField()" class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm">+ ရှယ်ယာရှင်ထပ်ထည့်ရန်</button>
+
+    <div class="text-center">
+      <button onclick="calculateProfit()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4">တွက်ချက်ပါ</button>
+    </div>
+
+    <div id="results" class="space-y-2"></div>
+  </div>
+</body>
+</html>
