@@ -73,7 +73,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-4xl bg-white shadow-lg rounded-xl p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-center">📈 Business Profit Calculator</h1>
+    <h1 class="text-2xl font-bold text-center">📈 အမြတ်ငွေတွက်ချက်မှု</h1>
 
     <div>
       <label for="soldAmount" class="block text-sm font-medium">ရောင်းစျေး (မြန်မာကျပ်)</label>
@@ -251,10 +251,20 @@
       const overallProfitLossClass = profit >= 0 ? 'profit-text' : 'loss-text';
 
       const summaryHTML = `
-        <div class="mt-3 p-3 border-t border-gray-300 bg-gray-50 rounded-lg">
-          <p class="text-sm sm:text-base font-semibold text-gray-700 mb-1">စုစုပေါင်း ပါဝင်ငွေ: ${totalInvestment.toLocaleString()} MMK</p>
-          <p class="text-sm sm:text-base font-semibold text-gray-700 mb-1">ရောင်းစျေး: ${soldAmount.toLocaleString()} MMK</p>
-          <p class="text-sm sm:text-base font-semibold text-gray-700">စုစုပေါင်း ${overallProfitLossText}: <span class="${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span></p>
+        <div class="mt-3 mobile-share-card">
+          <h3 class="mobile-share-name">စာရင်းအနှစ်ချုပ်</h3>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">စုစုပေါင်း ပါဝင်ငွေ:</span>
+            <span class="mobile-share-item-value">${totalInvestment.toLocaleString()} MMK</span>
+          </div>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">ရောင်းစျေး:</span>
+            <span class="mobile-share-item-value">${soldAmount.toLocaleString()} MMK</span>
+          </div>
+          <div class="mobile-share-item">
+            <span class="mobile-share-item-label">စုစုပေါင်း ${overallProfitLossText}:</span>
+            <span class="mobile-share-item-value ${overallProfitLossClass}">${Math.abs(profit).toFixed(0).toLocaleString()} MMK</span>
+          </div>
         </div>
       `;
 
